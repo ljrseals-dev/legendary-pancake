@@ -1,0 +1,191 @@
+<!doctype html>
+<title>Tube Singer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: the score and the vocal-tract profile are the instrument face; the controls sit under them. */
+  :root {
+    --bg: #e9eef0; --panel: #f6f9fa; --ink: #13222b; --mute: #55666f; --line: #c3d0d6; --accent: #0a5f86; --accent-ink: #ffffff; --lamp: #b25e00;
+    --f-display: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+    --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #0d1519; --panel: #141f25; --ink: #dbe6ea; --mute: #8ea3ac; --line: #28383f; --accent: #f0b447; --accent-ink: #1a1203; --lamp: #f0b447; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #0d1519; --panel: #141f25; --ink: #dbe6ea; --mute: #8ea3ac; --line: #28383f; --accent: #f0b447; --accent-ink: #1a1203; --lamp: #f0b447; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); padding-block: 20px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  main { max-width: 980px; margin: 0 auto; display: grid; gap: 16px; }
+  h1 { font: 700 clamp(34px, 7vw, 54px)/0.95 var(--f-display); margin: 0; text-transform: uppercase; text-wrap: balance; }
+  h2 { font: 600 13px/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); margin: 0 0 12px; }
+  .sub { color: var(--mute); margin: 8px 0 0; max-width: 64ch; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+  .scope { padding: 0; overflow: hidden; }
+  .scope-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 10px 16px; border-bottom: 1px solid var(--line); font: 12px var(--f-mono); color: var(--mute); }
+  .scope-head b { color: var(--ink); font-weight: 500; }
+  canvas { display: block; width: 100%; height: 200px; }
+  canvas + .scope-head { border-top: 1px solid var(--line); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button, select, input[type=file]::file-selector-button { font: 500 14px var(--f-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 4px; padding: 9px 14px; cursor: pointer; }
+  button:hover, select:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button[aria-pressed=true] { outline: 2px solid var(--accent); outline-offset: 1px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px 24px; }
+  label.ctl, .ctl { display: grid; gap: 4px; font-size: 13px; color: var(--mute); }
+  .ctl .v { font: 13px var(--f-mono); color: var(--ink); display: flex; justify-content: space-between; gap: 8px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .size { display: grid; gap: 6px; }
+  .size .ends { display: flex; justify-content: space-between; font: 12px var(--f-mono); color: var(--mute); }
+  .size input { height: 28px; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); }
+  .note { font-size: 12.5px; color: var(--mute); }
+  #status { font: 12px var(--f-mono); color: var(--mute); min-height: 18px; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .two > div { min-width: 0; }
+  ul.cites { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; }
+  cite { font-style: normal; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  table { width: 100%; border-collapse: collapse; font: 13px var(--f-mono); }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--mute); font-weight: 500; }
+  .tw { overflow-x: auto; }
+  .big { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+  .big div { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; }
+  .big b { display: block; font: 600 26px/1.1 var(--f-display); }
+  .big span { font: 12px var(--f-mono); color: var(--mute); }
+  .warn { color: var(--lamp); font-size: 13px; min-height: 18px; }
+  .keys { display: flex; flex-wrap: wrap; gap: 8px; }
+  .keys button { min-width: 48px; font-family: var(--f-mono); }
+  .lyr { font-size: 14px; line-height: 1.9; }
+  .lyr span { padding: 1px 3px; border-radius: 3px; }
+  .lyr span.on { background: var(--accent); color: var(--accent-ink); }
+</style>
+<main>
+  <header>
+    <h1>Tube Singer</h1>
+    <p class="sub">A singing voice made the way Bell Labs did it in 1961: not by filtering a buzz, but by simulating sound travelling down a tube shaped like a throat. Forty-four short tube sections, each reflecting a little of the wave back where the width changes. The vowels are tube shapes, and the song is Daisy Bell.</p>
+  </header>
+
+  <section class="panel scope" aria-label="Score and vocal tract">
+    <div class="scope-head"><span><b>Score</b> <span id="hdSyl"></span></span><span id="hdInfo">not rendered yet</span></div>
+    <canvas id="roll" role="img" aria-label="Piano roll of the Daisy Bell chorus with syllables"></canvas>
+    <div class="scope-head"><span><b>Vocal tract</b> glottis to lips</span><span id="hdVow"></span></div>
+    <canvas id="tract" role="img" aria-label="Side profile of the tube shape that is currently singing" style="height:150px"></canvas>
+  </section>
+
+  <section class="panel" aria-label="Sing">
+    <div class="row">
+      <button id="sing" class="primary">Sing the chorus</button><button id="stop">Stop</button>
+      <!--DL--><button id="dl">Save WAV</button><!--/DL-->
+      <span id="status" role="status"></span>
+    </div>
+    <p class="lyr" id="lyr" aria-label="Lyrics"></p>
+  </section>
+
+  <section class="panel" aria-label="Controls">
+    <h2>Voice</h2>
+    <div class="grid">
+      <label class="ctl"><span class="v"><span>Tempo</span><span id="vBpm">120 quarter notes / min</span></span><input id="bpm" type="range" min="70" max="180" step="2" value="120"></label>
+      <label class="ctl"><span class="v"><span>Transpose</span><span id="vTr">+12 semitones</span></span><input id="tr" type="range" min="-12" max="19" step="1" value="12"></label>
+      <label class="ctl"><span class="v"><span>Vocal tract length</span><span id="vLen">17.5 cm</span></span><input id="len" type="range" min="13" max="19.5" step="0.5" value="17.5"></label>
+      <label class="ctl"><span class="v"><span>Singer's formant shaping</span><span id="vEpi">0.00</span></span><input id="epi" type="range" min="0" max="1" step="0.05" value="0"></label>
+      <label class="ctl"><span class="v"><span>Vibrato depth</span><span id="vVib">28 cents</span></span><input id="vib" type="range" min="0" max="70" step="2" value="28"></label>
+      <label class="ctl"><span class="v"><span>Breath noise</span><span id="vBr">0.40</span></span><input id="br" type="range" min="0" max="1" step="0.05" value="0.4"></label>
+    </div>
+    <p class="note">Tract length moves all the vowel resonances together (shorter is higher, like a smaller singer) without changing the pitch. Singer's formant shaping narrows the tube just above the larynx and widens the throat behind it, which pushes energy toward 3 kHz; it also lowers the first resonance a little, so vowels get darker.</p>
+  </section>
+
+  <section class="panel" aria-label="Single vowels">
+    <h2>Hold one vowel</h2>
+    <div class="keys" id="keys" role="group" aria-label="Vowel keys"></div>
+    <p class="note">Each key holds that vowel for 1.5 seconds on the middle note of the song at the current settings. The tube shapes were fitted by a numerical search to textbook-style average male formants, not measured from anyone's throat.</p>
+  </section>
+
+  <section class="panel" aria-label="Method and sources">
+    <h2>Method and honest notes</h2>
+    <div class="two">
+      <div><p class="note" style="margin-top:0">Each of the 44 sections is a short uniform tube; at each junction a fraction k = (A1 - A2) / (A1 + A2) of the wave is reflected. The glottis end reflects most of the wave back and the lip end reflects most of it with a little low-pass, so the lips pass high frequencies better, which is what a real mouth does. The source is a Rosenberg glottal pulse with vibrato, a little jitter and breath. Vowel shapes glide into each other over about 70 ms, and a syllable with two vowels (like "I") glides from the first to the second near its end.</p>
+      <p class="note"><b>What this is not.</b> No consonants are modelled, so "Daisy" is sung as vowels only (a vowel with a little dip at each new syllable). The notes come from a public BASIC transcription of the tune (G major, 3/4); the syllable assignment is mine and the last lines are approximate. This is not a reconstruction of the Bell Labs program or its tract data. Nobody has listened to the result.</p></div>
+      <div><ul class="cites">
+        <li><cite>Kelly, J. L., and Lochbaum, C. C. (1962). Speech synthesis. Proceedings of the Fourth International Congress on Acoustics, Copenhagen, paper G42.</cite></li>
+        <li><cite>Rosenberg, A. E. (1971). Effect of glottal pulse shape on the quality of natural vowels. Journal of the Acoustical Society of America, 49(2B).</cite></li>
+        <li><cite>Sundberg, J. (1974). Articulatory interpretation of the "singing formant". Journal of the Acoustical Society of America, 55(4).</cite></li>
+        <li><cite>Peterson, G. E., and Barney, H. L. (1952). Control methods used in a study of the vowels. Journal of the Acoustical Society of America, 24(2): the style of formant averages used as fitting targets.</cite></li>
+        <li><cite>Hass, J. Synthesis, chapter 4, speech synthesis and the channel vocoder, page 6. Indiana University Center for Electronic and Computer Music (accessed for the history of the 1961 "Daisy" at Bell Labs).</cite></li>
+      </ul><p class="note">Except for the Hass page (read online) these were written from memory and not re-checked. The Bell Labs date is given as 1961 by some sources and 1960 by one; I did not resolve that.</p></div>
+    </div>
+  </section>
+</main>
+
+<script>
+/*DSP*/
+</script>
+<script>
+/*VOWELS*/
+</script>
+<script>
+/*TRACT*/
+</script>
+<script>
+/*SONG*/
+</script>
+<script>
+(function () {
+  "use strict";
+  const T = window.KLTract, S0 = window.DaisySong, K = window.SweepCore, $ = (id) => document.getElementById(id);
+  const S = { cache: null, key: "", ctx: null, src: null, t0: 0, buf: null, notes: [], raf: 0 };
+  const status = (m) => { $("status").textContent = m || ""; };
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || "#888";
+  const NAMES = { i: "i (beet)", I: "ɪ (bit)", E: "ɛ (bet)", ae: "æ (bat)", A: "ɑ (father)", V: "ʌ (but)", O: "ɔ (thought)", U: "ʊ (book)", u: "u (boot)" };
+  function cfg() { return { bpm: +$("bpm").value, tr: +$("tr").value, len: +$("len").value, epi: +$("epi").value, vib: +$("vib").value, br: +$("br").value }; }
+  function labels() { const c = cfg(); $("vBpm").textContent = c.bpm + " quarter notes / min"; $("vTr").textContent = (c.tr > 0 ? "+" : "") + c.tr + " semitones"; $("vLen").textContent = c.len + " cm"; $("vEpi").textContent = c.epi.toFixed(2); $("vVib").textContent = c.vib + " cents"; $("vBr").textContent = c.br.toFixed(2); }
+  ["bpm", "tr", "len", "epi", "vib", "br"].forEach((id) => $(id).addEventListener("input", () => { labels(); drawRoll(); }));
+  Object.keys(NAMES).forEach((k) => { const b = document.createElement("button"); b.textContent = k === "ae" ? "æ" : k === "E" ? "ɛ" : k === "I" ? "ɪ" : k === "A" ? "ɑ" : k === "V" ? "ʌ" : k === "O" ? "ɔ" : k === "U" ? "ʊ" : k; b.title = NAMES[k]; b.setAttribute("aria-label", "Hold vowel " + NAMES[k]); b.onclick = () => holdVowel(k); $("keys").appendChild(b); });
+  async function getCtx() { if (!S.ctx) S.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (S.ctx.state === "suspended") await S.ctx.resume(); return S.ctx; }
+  const tcfg = (c) => ({ len: c.len, epi: c.epi, vib: c.vib, breath: c.br, trace: true });
+  function renderSong(c) {
+    const key = JSON.stringify(c); if (S.cache && S.key === key) return S.cache;
+    const notes = S0.notes(c.bpm, c.tr), t0 = performance.now(), r = T.render(notes, tcfg(c)); let m = 0; for (let i = 0; i < r.samples.length; i++) m = Math.max(m, Math.abs(r.samples[i])); const k = m > 0 ? 0.8 / m : 1; for (let i = 0; i < r.samples.length; i++) r.samples[i] *= k;
+    S.cache = { r, notes, ms: performance.now() - t0 }; S.key = key; S.notes = notes; return S.cache;
+  }
+  function pitchRange(notes) { let lo = 1e9, hi = -1e9; notes.forEach((n) => { lo = Math.min(lo, n.midi); hi = Math.max(hi, n.midi); }); return [lo - 2, hi + 2]; }
+  function setup(cv, h) { const dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = h || cv.clientHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = css("--panel"); g.fillRect(0, 0, W, H); return { g, W, H }; }
+  function drawRoll(playT) {
+    const c = cfg(), notes = S.cache ? S.notes : S0.notes(c.bpm, c.tr), { g, W, H } = setup($("roll")); const L = 8, R = 8, Tp = 10, Bt = 30, pw = W - L - R, ph = H - Tp - Bt, tEnd = notes[notes.length - 1].t1 + 0.3, [lo, hi] = pitchRange(notes);
+    const X = (t) => L + pw * t / tEnd, Y = (m) => Tp + ph * (1 - (m - lo) / (hi - lo)); g.font = "10px " + css("--f-mono"); g.textBaseline = "top";
+    notes.forEach((n, i) => { const x = X(n.t0), w = Math.max(3, X(n.t1) - x - 1), on = playT != null && playT >= n.t0 && playT < n.t1; g.fillStyle = on ? css("--accent") : css("--mute"); g.globalAlpha = on ? 1 : 0.55; g.fillRect(x, Y(n.midi) - 5, w, 10); g.globalAlpha = 1; if (n.syl && w > 14) { g.fillStyle = css("--ink"); g.fillText(n.syl, x, H - Bt + 6 + (i % 2) * 11); } });
+    if (playT != null) { g.strokeStyle = css("--lamp"); g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(playT), Tp); g.lineTo(X(playT), H - Bt); g.stroke(); }
+    $("hdSyl").textContent = `${notes.filter((n) => n.syl).length} syllables, ${notes[notes.length - 1].t1.toFixed(0)} s`;
+  }
+  function drawTract(area, label) {
+    const { g, W, H } = setup($("tract")); const L = 14, R = 14, pw = W - L - R, mid = H / 2, n = T.N; g.fillStyle = css("--mute"); g.font = "11px " + css("--f-mono"); g.textBaseline = "top"; g.fillText("glottis", L, 4); g.textAlign = "right"; g.fillText("lips", W - R, 4); g.textAlign = "left";
+    if (!area) { g.fillText("Sing or hold a vowel to see the tube shape.", L, mid); return; }
+    const hh = (a) => Math.min(H * 0.46, 14 * Math.sqrt(a)); g.beginPath(); for (let i = 0; i < n; i++) { const x = L + pw * i / (n - 1); i ? g.lineTo(x, mid - hh(area[i])) : g.moveTo(x, mid - hh(area[i])); } for (let i = n - 1; i >= 0; i--) g.lineTo(L + pw * i / (n - 1), mid + hh(area[i])); g.closePath();
+    g.globalAlpha = 0.35; g.fillStyle = css("--accent"); g.fill(); g.globalAlpha = 1; g.strokeStyle = css("--accent"); g.lineWidth = 2; g.stroke(); $("hdVow").textContent = label || "";
+  }
+  function stop() { if (S.src) { try { S.src.stop(); } catch (e) {} S.src = null; } cancelAnimationFrame(S.raf); $("lyr").querySelectorAll("span.on").forEach((e) => e.classList.remove("on")); }
+  async function playBuffer(r, notes, trace) {
+    const ctx = await getCtx(); stop(); const b = ctx.createBuffer(1, r.samples.length, r.rate); b.getChannelData(0).set(r.samples); const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); S.src = s; const t0 = ctx.currentTime + 0.05; s.start(t0); s.onended = () => { if (S.src === s) { S.src = null; status("done"); } };
+    const tick = () => { if (S.src !== s) return; const t = ctx.currentTime - t0; if (t >= 0) { if (notes) drawRoll(t); let k = 0; while (k + 1 < trace.length && trace[k + 1].t <= t) k++; const fr = trace[k]; if (fr) { const n = notes && notes.find((q) => t >= q.t0 && t < q.t1); drawTract(fr.area, n ? (n.vow.join(" to ") + (n.syl ? "  \u201c" + n.syl + "\u201d" : "")) : ""); const idx = notes ? notes.findIndex((q) => t >= q.t0 && t < q.t1) : -1; $("lyr").querySelectorAll("span").forEach((e) => e.classList.toggle("on", +e.dataset.i === idx)); } } S.raf = requestAnimationFrame(tick); };
+    S.raf = requestAnimationFrame(tick);
+  }
+  $("sing").onclick = async () => { status("rendering the tube..."); await new Promise((q) => setTimeout(q, 30)); const c = cfg(), res = renderSong(c); $("hdInfo").textContent = `rendered in ${res.ms.toFixed(0)} ms, ${(res.r.samples.length / res.r.rate).toFixed(0)} s of audio`; status("singing"); await playBuffer(res.r, res.notes, res.r.trace); };
+  async function holdVowel(k) {
+    const c = cfg(), f0 = 440 * Math.pow(2, (S0.midi("G2") + c.tr - 69) / 12), r = T.render([{ t0: 0.05, t1: 1.5, f0, vow: [k], tie: false, legato: true }], Object.assign(tcfg(c), { vib: c.vib * 0.6 }));
+    let m = 0; for (let i = 0; i < r.samples.length; i++) m = Math.max(m, Math.abs(r.samples[i])); for (let i = 0; i < r.samples.length; i++) r.samples[i] *= 0.8 / (m || 1); status("holding " + NAMES[k]); await playBuffer(r, null, r.trace);
+  }
+  $("stop").onclick = () => { stop(); status(""); };
+  /*DL*/
+  $("dl") && ($("dl").onclick = async () => { status("rendering..."); await new Promise((q) => setTimeout(q, 30)); const res = renderSong(cfg()), url = URL.createObjectURL(new Blob([K.wav24(res.r.samples, Math.round(res.r.rate), false)], { type: "audio/wav" })); const a = document.createElement("a"); a.href = url; a.download = "daisy-bell-tube-singer.wav"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 2000); status("saved"); });
+  /*/DL*/
+  function lyrics() { const notes = S0.notes(120, 12); $("lyr").innerHTML = notes.map((n, i) => n.syl ? `<span data-i="${i}">${n.syl}</span>` : `<span data-i="${i}">\u2013</span>`).join(" "); }
+  window.addEventListener("resize", () => { drawRoll(); drawTract(null); });
+  labels(); lyrics(); drawRoll(); drawTract(null);
+  window.__kl = { T, S0, S, cfg, renderSong, holdVowel, ready: () => 1 };
+})();
+</script>
